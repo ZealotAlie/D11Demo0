@@ -5,6 +5,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Source Files\UnknownInstance">
+      <UniqueIdentifier>{33b8a3e4-83d7-481d-a832-c7b14d602498}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -42,6 +45,24 @@
     </ClCompile>
     <ClCompile Include="..\Common\WinHelper.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\CommonRenderObjects.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Effect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\RenderObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\UnknownInstance\Basic32.cpp">
+      <Filter>Source Files\UnknownInstance</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\UnknownInstance\Pos.cpp">
+      <Filter>Source Files\UnknownInstance</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\UnknownInstance\RenderStates.cpp">
+      <Filter>Source Files\UnknownInstance</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -89,6 +110,27 @@
     </ClInclude>
     <ClInclude Include="..\Common\WinHelper.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CommonRenderObjects.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Effect.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\RenderObject.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\UnknownInstance\Basic32.h">
+      <Filter>Source Files\UnknownInstance</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\UnknownInstance\Pos.h">
+      <Filter>Source Files\UnknownInstance</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\UnknownInstance\RenderStates.h">
+      <Filter>Source Files\UnknownInstance</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\UnknownInstance\UnknownInstance.h">
+      <Filter>Source Files\UnknownInstance</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

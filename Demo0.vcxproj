@@ -58,15 +58,19 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="DemoPropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="DemoPropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="DemoPropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="DemoPropertySheet.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -147,19 +151,17 @@
   <ItemGroup>
     <ClCompile Include="Src\BlurFilter.cpp" />
     <ClCompile Include="Src\D11DemoApp.cpp" />
-    <ClCompile Include="Src\Effects.cpp" />
+    <ClCompile Include="Src\DemoEffects.cpp" />
     <ClCompile Include="Src\RenderObjects.cpp" />
-    <ClCompile Include="Src\RenderStates.cpp" />
-    <ClCompile Include="Src\Vertex.cpp" />
+    <ClCompile Include="Src\TreePointSprite.cpp" />
     <ClCompile Include="Src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\BlurFilter.h" />
     <ClInclude Include="Src\D11DemoApp.h" />
-    <ClInclude Include="Src\Effects.h" />
+    <ClInclude Include="Src\DemoEffects.h" />
     <ClInclude Include="Src\RenderObjects.h" />
-    <ClInclude Include="Src\RenderStates.h" />
-    <ClInclude Include="Src\Vertex.h" />
+    <ClInclude Include="Src\TreePointSprite.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

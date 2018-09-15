@@ -13,19 +13,16 @@
     <ClCompile Include="Src\D11DemoApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Effects.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Src\RenderObjects.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\RenderStates.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\Vertex.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Src\WinMain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DemoEffects.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TreePointSprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -36,16 +33,13 @@
     <ClInclude Include="Src\D11DemoApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Effects.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Src\RenderObjects.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\RenderStates.h">
+    <ClInclude Include="Src\DemoEffects.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Vertex.h">
+    <ClInclude Include="Src\TreePointSprite.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

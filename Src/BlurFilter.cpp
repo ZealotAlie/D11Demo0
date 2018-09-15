@@ -1,5 +1,5 @@
 #include "BlurFilter.h"
-#include "Effects.h"
+#include "DemoEffects.h"
 
 BlurFilter::BlurFilter()
 	: mBlurredOutputTexSRV(0), mBlurredOutputTexUAV(0)
@@ -36,7 +36,7 @@ void BlurFilter::SetGaussianWeights(float sigma)
 		weights[i] /= sum;
 	}
 
-	Effects::BlurFX->SetWeights(weights);
+	BlurEffect::Ptr()->SetWeights(weights);
 }
 
 void BlurFilter::Init(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format)
@@ -94,12 +94,12 @@ void BlurFilter::BlurInPlace(ID3D11DeviceContext* dc, ID3D11ShaderResourceView* 
 	{
 		// HORIZONTAL blur pass.
 		D3DX11_TECHNIQUE_DESC techDesc;
-		Effects::BlurFX->HorzBlurTech->GetDesc( &techDesc );
+		BlurEffect::Ptr()->HorzBlurTech->GetDesc( &techDesc );
 		for(UINT p = 0; p < techDesc.Passes; ++p)
 		{
-			Effects::BlurFX->SetInputMap(inputSRV);
-			Effects::BlurFX->SetOutputMap(mBlurredOutputTexUAV);
-			Effects::BlurFX->HorzBlurTech->GetPassByIndex(p)->Apply(0, dc);
+			BlurEffect::Ptr()->SetInputMap(inputSRV);
+			BlurEffect::Ptr()->SetOutputMap(mBlurredOutputTexUAV);
+			BlurEffect::Ptr()->HorzBlurTech->GetPassByIndex(p)->Apply(0, dc);
 
 			// How many groups do we need to dispatch to cover a row of pixels, where each
 			// group covers 256 pixels (the 256 is defined in the ComputeShader).
@@ -117,12 +117,12 @@ void BlurFilter::BlurInPlace(ID3D11DeviceContext* dc, ID3D11ShaderResourceView* 
 		dc->CSSetUnorderedAccessViews( 0, 1, nullUAV, 0 );
 
 		// VERTICAL blur pass.
-		Effects::BlurFX->VertBlurTech->GetDesc( &techDesc );
+		BlurEffect::Ptr()->VertBlurTech->GetDesc( &techDesc );
 		for(UINT p = 0; p < techDesc.Passes; ++p)
 		{
-			Effects::BlurFX->SetInputMap(mBlurredOutputTexSRV);
-			Effects::BlurFX->SetOutputMap(inputUAV);
-			Effects::BlurFX->VertBlurTech->GetPassByIndex(p)->Apply(0, dc);
+			BlurEffect::Ptr()->SetInputMap(mBlurredOutputTexSRV);
+			BlurEffect::Ptr()->SetOutputMap(inputUAV);
+			BlurEffect::Ptr()->VertBlurTech->GetPassByIndex(p)->Apply(0, dc);
 
 			// How many groups do we need to dispatch to cover a column of pixels, where each
 			// group covers 256 pixels  (the 256 is defined in the ComputeShader).

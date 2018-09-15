@@ -2,9 +2,11 @@
 #include "d3dApp.h"
 #include "GeometryGenerator.h"
 #include "DDSTextureLoader.h"
-#include "Effects.h"
-#include "RenderStates.h"
+#include "DemoEffects.h"
+#include "UnknownInstance/RenderStates.h"
+#include "UnknownInstance/Basic32.h"
 #include "D11DemoApp.h"
+#include "TreePointSprite.h"
 
 const float LAND_SIZE = 160.f;
 
@@ -30,76 +32,6 @@ struct MountHelper
 
 };
 
-RenderObject::~RenderObject()
-{
-	ReleaseCOM(mTextureSRV);
-	ReleaseCOM(mVertexBuffer);
-	ReleaseCOM(mIndexBuffer);
-}
-
-void RenderObject::Draw(const D3DApp* pApp)
-{
-	ID3DX11EffectTechnique* pTech = Effects::BasicFX->GetTechnique(pApp->GetRenderOptions());
-	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
-
-	SetupEffect( Effects::BasicFX, pApp );
-
-	DrawWithTech( pD3dContext, pTech );
-}
-
-void RenderObject::DrawWithTech(ID3D11DeviceContext* pD3dContext,ID3DX11EffectTechnique* pTech)const
-{
-	pD3dContext->IASetInputLayout(InputLayouts::Vertex);
-	pD3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	pD3dContext->IASetVertexBuffers( 0, 1, &mVertexBuffer,&stride,&offset );
-	pD3dContext->IASetIndexBuffer(mIndexBuffer,DXGI_FORMAT_R32_UINT,0);
-
-	D3DX11_TECHNIQUE_DESC techDesc;
-	pTech->GetDesc(&techDesc);
-
-	for(UINT p=0;p<techDesc.Passes;++p)
-	{
-		pTech->GetPassByIndex(p)->Apply(0,pD3dContext);
-		pD3dContext->DrawIndexed(mIndexNum,0,0);
-	}
-}
-
-template < typename T >
-void RenderObject::CreateBuffer( ID3D11Buffer*& pBuffer, ID3D11Device* pDevice, UINT size, T* pData, UINT bindFlags, D3D11_USAGE usage /*= D3D11_USAGE_IMMUTABLE */ )
-{
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = usage;
-	vbd.BindFlags = bindFlags;
-	vbd.ByteWidth = sizeof(T)*size;
-	vbd.StructureByteStride = sizeof(T);
-	vbd.MiscFlags = 0;
-	UINT cpuAccessFlags = 0;
-	if( usage == D3D11_USAGE_DYNAMIC )
-	{
-		cpuAccessFlags |= D3D11_CPU_ACCESS_WRITE;
-	}
-	if( usage == D3D11_USAGE_STAGING )
-	{
-		cpuAccessFlags |= D3D11_CPU_ACCESS_READ;
-	}
-	vbd.CPUAccessFlags = cpuAccessFlags;
-
-	if(pData != nullptr)
-	{
-		D3D11_SUBRESOURCE_DATA initData;
-		initData.pSysMem = pData;
-		HR( pDevice->CreateBuffer( &vbd, &initData, &pBuffer ) );
-	}
-	else
-	{
-		HR( pDevice->CreateBuffer( &vbd, nullptr, &pBuffer ) );
-	}
-}
-
-
 void MountObject::Build(const D3DApp* pApp)
 {
 	ID3D11Device* pDevice = pApp->GetDevice();
@@ -108,7 +40,7 @@ void MountObject::Build(const D3DApp* pApp)
 	GeometryGenerator geo;
 	geo.CreateGrid(LAND_SIZE,LAND_SIZE, 50,50, meshData);
 
-	std::vector<Vertex> vertexs(meshData.Vertices.size());
+	std::vector<Basic32> vertexs(meshData.Vertices.size());
 	for( UINT i = 0; i < vertexs.size(); ++i )
 	{
 		auto const& meshVex = meshData.Vertices[i];
@@ -139,7 +71,7 @@ void WaterObject::Build(const D3DApp* pApp)
 	const UINT WAVE_UNIT_NUM = 200;
 	mWaves.Init( WAVE_UNIT_NUM, WAVE_UNIT_NUM, LAND_SIZE/WAVE_UNIT_NUM, 0.03f, 3.25f, 0.4f );
 
-	CreateBuffer( mVertexBuffer, pDevice, mWaves.VertexCount(), (Vertex*)nullptr, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC );
+	CreateBuffer( mVertexBuffer, pDevice, mWaves.VertexCount(), (Basic32*)nullptr, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC );
 
 	mIndexNum = 3*mWaves.TriangleCount();
 	std::vector<UINT> indices(mIndexNum); // 3 indices per face
@@ -219,8 +151,8 @@ void WaterObject::DrawTransparency(const D3DApp* pApp)
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
 
 	float blendFactor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-	pD3dContext->OMSetDepthStencilState(RenderStates::NoDepthDSS, 1);
-	pD3dContext->OMSetBlendState( RenderStates::TransparentBS , blendFactor, 0xffffffff );
+	pD3dContext->OMSetDepthStencilState(DSSNoDepth::Ptr(), 1);
+	pD3dContext->OMSetBlendState( BSTransparent::Ptr() , blendFactor, 0xffffffff );
 
 	if( mNeedMap )
 	{
@@ -228,7 +160,7 @@ void WaterObject::DrawTransparency(const D3DApp* pApp)
 		D3D11_MAPPED_SUBRESOURCE mappedData;
 		HR(pD3dContext->Map(mVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
 
-		Vertex* v = reinterpret_cast<Vertex*>(mappedData.pData);
+		Basic32* v = reinterpret_cast<Basic32*>(mappedData.pData);
 		for(UINT i = 0; i < mWaves.VertexCount(); ++i)
 		{
 			v[i].Pos    = mWaves[i];
@@ -303,15 +235,15 @@ void TreeObject::Build(const D3DApp* pApp)
 void TreeObject::Draw(const D3DApp* pApp) 
 {
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
-	ID3DX11EffectTechnique* pTech = Effects::TreeSprite->GetTechnique(pApp->GetRenderOptions());
+	ID3DX11EffectTechnique* pTech = TreeSpriteEffect::Ptr()->GetTechnique(pApp->GetRenderOptions());
 
-	Effects::TreeSprite->SetMaterial(mMaterial);
-	Effects::TreeSprite->SetTreeTextureMapArray(mTextureSRV);
-	Effects::TreeSprite->SetEyePosW(pApp->GetCamera().GetPosition());
-	Effects::TreeSprite->SetViewProj(pApp->GetCamera().ViewProj());
+	TreeSpriteEffect::Ptr()->SetMaterial(mMaterial);
+	TreeSpriteEffect::Ptr()->SetTreeTextureMapArray(mTextureSRV);
+	TreeSpriteEffect::Ptr()->SetEyePosW(pApp->GetCamera().GetPosition());
+	TreeSpriteEffect::Ptr()->SetViewProj(pApp->GetCamera().ViewProj());
 
 	pD3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	pD3dContext->IASetInputLayout(InputLayouts::TreePointSprite);
+	pD3dContext->IASetInputLayout(TreePointSprite::GetInputLayout());
 	UINT stride = sizeof(TreePointSprite);
 	UINT offset = 0;
 
@@ -329,68 +261,24 @@ const float WALL_GROUND_HEIGHT = 3.f;
 
 void SkullObject::Build(const D3DApp* pApp)
 {
-	std::ifstream fin("Models/skull.txt");
-
-	if(!fin)
-	{
-		MessageBox(0, L"Models/skull.txt not found.", 0, 0);
-		return;
-	}
-
-	UINT vcount = 0;
-	UINT tcount = 0;
-	std::string ignore;
-
-	fin >> ignore >> vcount;
-	fin >> ignore >> tcount;
-	fin >> ignore >> ignore >> ignore >> ignore;
-
-	std::vector<Vertex> vertices(vcount);
-	for(UINT i = 0; i < vcount; ++i)
-	{
-		fin >> vertices[i].Pos.x >> vertices[i].Pos.y >> vertices[i].Pos.z;
-		fin >> vertices[i].Normal.x >> vertices[i].Normal.y >> vertices[i].Normal.z;
-	}
-
-	fin >> ignore;
-	fin >> ignore;
-	fin >> ignore;
-
-	mIndexNum = 3*tcount;
-	std::vector<UINT> indices(mIndexNum);
-	for(UINT i = 0; i < tcount; ++i)
-	{
-		fin >> indices[i*3+0] >> indices[i*3+1] >> indices[i*3+2];
-	}
-
-	fin.close();
-
-	mMaterial.Ambient  = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-	mMaterial.Diffuse  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	mMaterial.Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 16.0f);
+	BasicSkullObject::Build( pApp );
 
 	mShadowMat.Ambient  = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	mShadowMat.Diffuse  = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.5f);
 	mShadowMat.Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 16.0f);
 
 	mSkullTranslation = XMFLOAT3(0.0f, WALL_GROUND_HEIGHT+1.0f, -5.0f);
-	XMMATRIX skullMat = XMMatrixTranslation(0, 20, 0.0f);
-	XMStoreFloat4x4(&mWorld, skullMat);
-
-	ID3D11Device* pDevice = pApp->GetDevice();
-	CreateBuffer( mVertexBuffer, pDevice, vcount, &vertices[0], D3D11_BIND_VERTEX_BUFFER );
-	CreateBuffer( mIndexBuffer, pDevice, mIndexNum, &indices[0], D3D11_BIND_INDEX_BUFFER );
 }
 
 void SkullObject::Draw(const D3DApp* pApp) 
 {
-	ID3DX11EffectTechnique* pTech = pApp->GetRenderOptions()==TexturesAndFog? Effects::BasicFX->Light3FogTech:Effects::BasicFX->Light3Tech;
+	ID3DX11EffectTechnique* pTech = pApp->GetRenderOptions()==TexturesAndFog? BasicEffect::Ptr()->Light3FogTech:BasicEffect::Ptr()->Light3Tech;
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
-	SetupEffect( Effects::BasicFX, pApp );
+	SetupEffect( BasicEffect::Ptr(), pApp );
 	DrawWithTech(pD3dContext,pTech);
 
 	float blendFactor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Basic32);
 	UINT offset = 0;
 	//
 	// Draw the mirror to stencil buffer only.
@@ -404,17 +292,17 @@ void SkullObject::Draw(const D3DApp* pApp)
 		pD3dContext->IASetVertexBuffers(0, 1, mWall->GetVertexBuffer(), &stride, &offset);
 
 		// Set per object constants.
-		mWall->SetupEffect( Effects::BasicFX, pApp );
+		mWall->SetupEffect( BasicEffect::Ptr(), pApp );
 
 		//
 		//pD3dContext->RSSetState(RenderStates::NoCullRS);
 
 		// Do not write to render target.
-		pD3dContext->OMSetBlendState(RenderStates::NoRenderTargetWritesBS, blendFactor, 0xffffffff);
+		pD3dContext->OMSetBlendState(BSNoRenderTargetWrites::Ptr(), blendFactor, 0xffffffff);
 
 		// Render visible mirror pixels to stencil buffer.
 		// Do not write mirror depth to depth buffer at this point, otherwise it will occlude the reflection.
-		pD3dContext->OMSetDepthStencilState(RenderStates::MarkMirrorDSS, 1);
+		pD3dContext->OMSetDepthStencilState(DDSMarkMirror::Ptr(), 1);
 
 		pass->Apply(0, pD3dContext);
 		pD3dContext->Draw(6, 24);
@@ -443,10 +331,10 @@ void SkullObject::Draw(const D3DApp* pApp)
 		XMMATRIX worldInvTranspose = MathHelper::InverseTranspose(world);
 		XMMATRIX worldViewProj = world*pApp->GetCamera().ViewProj();
 
-		Effects::BasicFX->SetWorld(world);
-		Effects::BasicFX->SetWorldInvTranspose(worldInvTranspose);
-		Effects::BasicFX->SetWorldViewProj(worldViewProj);
-		Effects::BasicFX->SetMaterial(mMaterial);
+		BasicEffect::Ptr()->SetWorld(world);
+		BasicEffect::Ptr()->SetWorldInvTranspose(worldInvTranspose);
+		BasicEffect::Ptr()->SetWorldViewProj(worldViewProj);
+		BasicEffect::Ptr()->SetMaterial(mMaterial);
 
 		// Cache the old light directions, and reflect the light directions.
 		XMFLOAT3 oldLightDirections[3];
@@ -461,13 +349,13 @@ void SkullObject::Draw(const D3DApp* pApp)
 			XMStoreFloat3(&pDirLights[i].Direction, reflectedLightDir);
 		}
 
-		Effects::BasicFX->SetDirLights(pDirLights);
+		BasicEffect::Ptr()->SetDirLights(pDirLights);
 
 		// Cull clockwise triangles for reflection.
-		pD3dContext->RSSetState(RenderStates::CullClockwiseRS);
+		pD3dContext->RSSetState(RSCullClockwise::Ptr());
 
 		// Only draw reflection into visible mirror pixels as marked by the stencil buffer. 
-		pD3dContext->OMSetDepthStencilState(RenderStates::DrawReflectionDSS, 1);
+		pD3dContext->OMSetDepthStencilState(DSSDrawReflection::Ptr(), 1);
 		pass->Apply(0, pD3dContext);
 		pD3dContext->DrawIndexed(mIndexNum, 0, 0);
 
@@ -481,19 +369,19 @@ void SkullObject::Draw(const D3DApp* pApp)
 			pDirLights[i].Direction = oldLightDirections[i];
 		}
 
-		Effects::BasicFX->SetDirLights(pDirLights);
+		BasicEffect::Ptr()->SetDirLights(pDirLights);
 	}
 }
 
 void SkullObject::DrawTransparency(const D3DApp* pApp) 
 {
-	ID3DX11EffectTechnique* pTech = pApp->GetRenderOptions()==TexturesAndFog? Effects::BasicFX->Light3FogTech:Effects::BasicFX->Light3Tech;
+	ID3DX11EffectTechnique* pTech = pApp->GetRenderOptions()==TexturesAndFog? BasicEffect::Ptr()->Light3FogTech:BasicEffect::Ptr()->Light3Tech;
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
 
-	pD3dContext->IASetInputLayout(InputLayouts::Vertex);
+	pD3dContext->IASetInputLayout(Basic32::GetInputLayout());
 	pD3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Basic32);
 	UINT offset = 0;
 	float blendFactor[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -509,16 +397,16 @@ void SkullObject::DrawTransparency(const D3DApp* pApp)
 		pD3dContext->IASetVertexBuffers(0, 1, mWall->GetVertexBuffer(), &stride, &offset);
 
 		// Set per object constants.
-		mWall->SetupEffect( Effects::BasicFX, pApp );
+		mWall->SetupEffect( BasicEffect::Ptr(), pApp );
 		//
 		//pD3dContext->RSSetState(RenderStates::NoCullRS);
 
 		// Do not write to render target.
-		pD3dContext->OMSetBlendState(RenderStates::NoRenderTargetWritesBS, blendFactor, 0xffffffff);
+		pD3dContext->OMSetBlendState(BSNoRenderTargetWrites::Ptr(), blendFactor, 0xffffffff);
 
 		// Render visible mirror pixels to stencil buffer.
 		// Do not write mirror depth to depth buffer at this point, otherwise it will occlude the reflection.
-		pD3dContext->OMSetDepthStencilState(RenderStates::MarkMirrorDSS, 1<<1);
+		pD3dContext->OMSetDepthStencilState(DDSMarkMirror::Ptr(), 1<<1);
 
 		pass->Apply(0, pD3dContext);
 		pD3dContext->Draw(6, 0);
@@ -548,14 +436,14 @@ void SkullObject::DrawTransparency(const D3DApp* pApp)
 		XMMATRIX worldInvTranspose = MathHelper::InverseTranspose(world);
 		XMMATRIX worldViewProj = world*pApp->GetCamera().ViewProj();
 
-		Effects::BasicFX->SetWorld(world);
-		Effects::BasicFX->SetWorldInvTranspose(worldInvTranspose);
-		Effects::BasicFX->SetWorldViewProj(worldViewProj);
-		Effects::BasicFX->SetMaterial(mShadowMat);
-		Effects::BasicFX->SetTexTransform( XMLoadFloat4x4( &mTexTransform ) );
+		BasicEffect::Ptr()->SetWorld(world);
+		BasicEffect::Ptr()->SetWorldInvTranspose(worldInvTranspose);
+		BasicEffect::Ptr()->SetWorldViewProj(worldViewProj);
+		BasicEffect::Ptr()->SetMaterial(mShadowMat);
+		BasicEffect::Ptr()->SetTexTransform( XMLoadFloat4x4( &mTexTransform ) );
 
-		pD3dContext->OMSetBlendState(RenderStates::TransparentBS, blendFactor, 0xffffffff);
-		pD3dContext->OMSetDepthStencilState(RenderStates::StencilNoDoubleBlendDSS, 1<<1);
+		pD3dContext->OMSetBlendState(BSTransparent::Ptr(), blendFactor, 0xffffffff);
+		pD3dContext->OMSetDepthStencilState(DSSStencilNoDoubleBlend::Ptr(), 1<<1);
 		pass->Apply(0, pD3dContext);
 		pD3dContext->DrawIndexed(mIndexNum, 0, 0);
 
@@ -617,51 +505,51 @@ void WallObject::Build(const D3DApp* pApp)
 
 	const UINT VERTEX_NUM = 30;
 
-	Vertex v[VERTEX_NUM];
+	Basic32 v[VERTEX_NUM];
 
 	// Floor: Observe we tile texture coordinates.
-	v[0] = Vertex(-3.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f, 4.0f);
-	v[1] = Vertex(-3.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
-	v[2] = Vertex( 7.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 4.0f, 0.0f);
+	v[0] = Basic32(-3.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f, 4.0f);
+	v[1] = Basic32(-3.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
+	v[2] = Basic32( 7.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 4.0f, 0.0f);
 
-	v[3] = Vertex(-3.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f, 4.0f);
-	v[4] = Vertex( 7.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 4.0f, 0.0f);
-	v[5] = Vertex( 7.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 4.0f, 4.0f);
+	v[3] = Basic32(-3.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f, 4.0f);
+	v[4] = Basic32( 7.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 4.0f, 0.0f);
+	v[5] = Basic32( 7.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 4.0f, 4.0f);
 
 	// Wall: Observe we tile texture coordinates, and that we
 	// leave a gap in the middle for the mirror.
-	v[6]  = Vertex(-3.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
-	v[7]  = Vertex(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
-	v[8]  = Vertex(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 0.0f);
+	v[6]  = Basic32(-3.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
+	v[7]  = Basic32(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
+	v[8]  = Basic32(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 0.0f);
 
-	v[9]  = Vertex(-3.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
-	v[10] = Vertex(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 0.0f);
-	v[11] = Vertex(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 2.0f);
+	v[9]  = Basic32(-3.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
+	v[10] = Basic32(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 0.0f);
+	v[11] = Basic32(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 2.0f);
 
-	v[12] = Vertex(2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
-	v[13] = Vertex(2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
-	v[14] = Vertex(7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 0.0f);
+	v[12] = Basic32(2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
+	v[13] = Basic32(2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
+	v[14] = Basic32(7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 0.0f);
 
-	v[15] = Vertex(2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
-	v[16] = Vertex(7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 0.0f);
-	v[17] = Vertex(7.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 2.0f);
+	v[15] = Basic32(2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f);
+	v[16] = Basic32(7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 0.0f);
+	v[17] = Basic32(7.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 2.0f);
 
-	v[18] = Vertex(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
-	v[19] = Vertex(-3.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
-	v[20] = Vertex( 7.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 0.0f);
+	v[18] = Basic32(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
+	v[19] = Basic32(-3.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
+	v[20] = Basic32( 7.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 0.0f);
 
-	v[21] = Vertex(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
-	v[22] = Vertex( 7.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 0.0f);
-	v[23] = Vertex( 7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 1.0f);
+	v[21] = Basic32(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
+	v[22] = Basic32( 7.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 0.0f);
+	v[23] = Basic32( 7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 1.0f);
 
 	// Mirror
-	v[24] = Vertex(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
-	v[25] = Vertex(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
-	v[26] = Vertex( 2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f);
+	v[24] = Basic32(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
+	v[25] = Basic32(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
+	v[26] = Basic32( 2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f);
 
-	v[27] = Vertex(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
-	v[28] = Vertex( 2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f);
-	v[29] = Vertex( 2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f);
+	v[27] = Basic32(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f);
+	v[28] = Basic32( 2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f);
+	v[29] = Basic32( 2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f);
 
 	ID3D11Device* pDevice = pApp->GetDevice();
 
@@ -687,15 +575,15 @@ void WallObject::Build(const D3DApp* pApp)
 void WallObject::Draw(const D3DApp* pApp) 
 {
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
-	ID3DX11EffectTechnique* pTech = Effects::BasicFX->GetTechnique(pApp->GetRenderOptions());
+	ID3DX11EffectTechnique* pTech = BasicEffect::Ptr()->GetTechnique(pApp->GetRenderOptions());
 
-	SetupEffect( Effects::BasicFX, pApp );
+	SetupEffect( BasicEffect::Ptr(), pApp );
 
-	pD3dContext->IASetInputLayout(InputLayouts::Vertex);
+	pD3dContext->IASetInputLayout(Basic32::GetInputLayout());
 	pD3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pD3dContext->RSSetState(RenderStates::NoCullRS);
+	pD3dContext->RSSetState(RSNoCull::Ptr());
 
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Basic32);
 	UINT offset = 0;
 	pD3dContext->IASetVertexBuffers( 0, 1, &mVertexBuffer,&stride,&offset );
 
@@ -706,14 +594,14 @@ void WallObject::Draw(const D3DApp* pApp)
 	{
 		ID3DX11EffectPass* pass = pTech->GetPassByIndex( p );
 
-		Effects::BasicFX->SetMaterial( mMaterial );
+		BasicEffect::Ptr()->SetMaterial( mMaterial );
 		// Set per object constants.
-		Effects::BasicFX->SetDiffuseMap(mFloorDiffuseMapSRV);
+		BasicEffect::Ptr()->SetDiffuseMap(mFloorDiffuseMapSRV);
 		pass->Apply(0, pD3dContext);
 		pD3dContext->Draw(6, 0);
 
 		// Wall
-		Effects::BasicFX->SetDiffuseMap(mWallDiffuseMapSRV);
+		BasicEffect::Ptr()->SetDiffuseMap(mWallDiffuseMapSRV);
 		pass->Apply(0, pD3dContext);
 		pD3dContext->Draw(18, 6);
 	}
@@ -724,17 +612,17 @@ void WallObject::Draw(const D3DApp* pApp)
 void WallObject::DrawTransparency(const D3DApp* pApp) 
 {
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
-	ID3DX11EffectTechnique* pTech = Effects::BasicFX->GetTechnique(pApp->GetRenderOptions());
+	ID3DX11EffectTechnique* pTech = BasicEffect::Ptr()->GetTechnique(pApp->GetRenderOptions());
 
-	SetupEffect( Effects::BasicFX, pApp );
+	SetupEffect( BasicEffect::Ptr(), pApp );
 
 	float blendFactor[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-	pD3dContext->IASetInputLayout(InputLayouts::Vertex);
+	pD3dContext->IASetInputLayout(Basic32::GetInputLayout());
 	pD3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pD3dContext->RSSetState(RenderStates::NoCullRS);
+	pD3dContext->RSSetState(RSNoCull::Ptr());
 
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Basic32);
 	UINT offset = 0;
 	pD3dContext->IASetVertexBuffers( 0, 1, &mVertexBuffer,&stride,&offset );
 
@@ -745,10 +633,10 @@ void WallObject::DrawTransparency(const D3DApp* pApp)
 	{
 		ID3DX11EffectPass* pass = pTech->GetPassByIndex( p );
 		// Mirror
-		Effects::BasicFX->SetMaterial( mMirrorMaterial );
-		pD3dContext->OMSetDepthStencilState(RenderStates::NoDepthDSS, 1);
-		pD3dContext->OMSetBlendState(RenderStates::TransparentBS, blendFactor, 0xffffffff);
-		Effects::BasicFX->SetDiffuseMap(mMirrorDiffuseMapSRV);
+		BasicEffect::Ptr()->SetMaterial( mMirrorMaterial );
+		pD3dContext->OMSetDepthStencilState(DSSNoDepth::Ptr(), 1);
+		pD3dContext->OMSetBlendState(BSTransparent::Ptr(), blendFactor, 0xffffffff);
+		BasicEffect::Ptr()->SetDiffuseMap(mMirrorDiffuseMapSRV);
 		pass->Apply(0, pD3dContext);
 		pD3dContext->Draw(6, 24);
 		pD3dContext->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
@@ -770,7 +658,7 @@ void FullScreenQuadObject::Build(const D3DApp* pApp)
 	// vertices of all the meshes into one vertex buffer.
 	//
 
-	std::vector<Vertex> vertices(quad.Vertices.size());
+	std::vector<Basic32> vertices(quad.Vertices.size());
 
 	for(UINT i = 0; i < quad.Vertices.size(); ++i)
 	{
@@ -786,11 +674,12 @@ void FullScreenQuadObject::Build(const D3DApp* pApp)
 void FullScreenQuadObject::DrawQuad(const D3DApp* pApp,ID3D11ShaderResourceView* tex) const
 {
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
-	ID3DX11EffectTechnique* texOnlyTech = Effects::BasicFX->Light0TexTech;
+	BasicEffect* pBasicFx = BasicEffect::Ptr();
+	ID3DX11EffectTechnique* texOnlyTech = pBasicFx->Light0TexTech;
 	XMMATRIX identity = XMMatrixIdentity();
 
 	D3DX11_TECHNIQUE_DESC techDesc;
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Basic32);
 	UINT offset = 0;
 
 	texOnlyTech->GetDesc( &techDesc );
@@ -799,11 +688,11 @@ void FullScreenQuadObject::DrawQuad(const D3DApp* pApp,ID3D11ShaderResourceView*
 		pD3dContext->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);
 		pD3dContext->IASetIndexBuffer(mIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-		Effects::BasicFX->SetWorld(identity);
-		Effects::BasicFX->SetWorldInvTranspose(identity);
-		Effects::BasicFX->SetWorldViewProj(identity);
-		Effects::BasicFX->SetTexTransform(identity);
-		Effects::BasicFX->SetDiffuseMap(tex);
+		pBasicFx->SetWorld(identity);
+		pBasicFx->SetWorldInvTranspose(identity);
+		pBasicFx->SetWorldViewProj(identity);
+		pBasicFx->SetTexTransform(identity);
+		pBasicFx->SetDiffuseMap(tex);
 
 		texOnlyTech->GetPassByIndex(p)->Apply(0, pD3dContext);
 		pD3dContext->DrawIndexed(mIndexNum, 0, 0);
@@ -835,7 +724,7 @@ void CsWaterObject::Build(const D3DApp* pApp)
 	GeometryGenerator geo;
 	geo.CreateGrid( LAND_SIZE,LAND_SIZE, VERTEX_NUM, VERTEX_NUM, meshData );
 
-	std::vector<Vertex> vertexs(meshData.Vertices.size());
+	std::vector<Basic32> vertexs(meshData.Vertices.size());
 	for( UINT i = 0; i < vertexs.size(); ++i )
 	{
 		auto const& meshVex = meshData.Vertices[i];
@@ -854,8 +743,8 @@ void CsWaterObject::Build(const D3DApp* pApp)
 	D3D11_BUFFER_DESC vbd;
 	vbd.Usage = D3D11_USAGE_DEFAULT;
 	vbd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
-	vbd.ByteWidth = sizeof(Vertex)*vertexBufferNum;
-	vbd.StructureByteStride = sizeof(Vertex);
+	vbd.ByteWidth = sizeof(Basic32)*vertexBufferNum;
+	vbd.StructureByteStride = sizeof(Basic32);
 	vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	vbd.CPUAccessFlags = 0;
 
@@ -904,10 +793,10 @@ void CsWaterObject::Build(const D3DApp* pApp)
 
 void CsWaterObject::DrawTransparency(const D3DApp* pApp) 
 {
-	ID3DX11EffectTechnique* pTech = Effects::Water->GetTechnique(pApp->GetRenderOptions());
+	ID3DX11EffectTechnique* pTech = WaterEffect::Ptr()->GetTechnique(pApp->GetRenderOptions());
 	ID3D11DeviceContext* pD3dContext = pApp->GetContext();
 
-	SetupEffect( Effects::Water, pApp );
+	SetupEffect( WaterEffect::Ptr(), pApp );
 
 	bool needCopy = false;
 
@@ -929,12 +818,12 @@ void CsWaterObject::DrawTransparency(const D3DApp* pApp)
 	}
 
 	float blendFactor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-	pD3dContext->OMSetDepthStencilState(RenderStates::NoDepthDSS, 1);
-	pD3dContext->OMSetBlendState( RenderStates::TransparentBS , blendFactor, 0xffffffff );
+	pD3dContext->OMSetDepthStencilState(DSSNoDepth::Ptr(), 1);
+	pD3dContext->OMSetBlendState( BSTransparent::Ptr() , blendFactor, 0xffffffff );
 
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Basic32);
 	UINT offset = 0;
-	pD3dContext->IASetInputLayout(InputLayouts::Vertex);
+	pD3dContext->IASetInputLayout(Basic32::GetInputLayout());
 	pD3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pD3dContext->IASetVertexBuffers( 0, 1, &mVertexBuffer,&stride,&offset );
 	pD3dContext->IASetIndexBuffer(mIndexBuffer,DXGI_FORMAT_R32_UINT,0);
@@ -981,14 +870,14 @@ void CsWaterObject::Update(float dt)
 void CsWaterObject::DrawUpdateWave(ID3D11DeviceContext* pD3dContext) const
 {
 	D3DX11_TECHNIQUE_DESC techDesc;
-	Effects::Water->WaveMotionTech->GetDesc( &techDesc );
+	WaterEffect::Ptr()->WaveMotionTech->GetDesc( &techDesc );
 	for(UINT p = 0; p < techDesc.Passes; ++p)
 	{
-		Effects::Water->SetWaveSize(XMINT2(VERTEX_NUM,VERTEX_NUM));
-		Effects::Water->SetWaveOutput(mWaterOutputUAV);
-		Effects::Water->SetWavePreY(mWaveHeightUAV);
+		WaterEffect::Ptr()->SetWaveSize(XMINT2(VERTEX_NUM,VERTEX_NUM));
+		WaterEffect::Ptr()->SetWaveOutput(mWaterOutputUAV);
+		WaterEffect::Ptr()->SetWavePreY(mWaveHeightUAV);
 
-		Effects::Water->WaveMotionTech->GetPassByIndex(p)->Apply(0, pD3dContext);
+		WaterEffect::Ptr()->WaveMotionTech->GetPassByIndex(p)->Apply(0, pD3dContext);
 
 		// How many groups do we need to dispatch to cover a row of pixels, where each
 		// group covers 256 pixels (the 256 is defined in the ComputeShader).
@@ -1005,16 +894,16 @@ void CsWaterObject::DrawUpdateWave(ID3D11DeviceContext* pD3dContext) const
 void CsWaterObject::DrawDisturb(ID3D11DeviceContext* pD3dContext) const
 {
 	D3DX11_TECHNIQUE_DESC techDesc;
-	Effects::Water->WaveDisturbTech->GetDesc( &techDesc );
+	WaterEffect::Ptr()->WaveDisturbTech->GetDesc( &techDesc );
 	for(UINT p = 0; p < techDesc.Passes; ++p)
 	{
 		int i = 5 + rand() % (VERTEX_NUM-10);
 		int j = 5 + rand() % (VERTEX_NUM-10);
 		float r = MathHelper::RandF(0.5f, 1.0f);
 
-		Effects::Water->SetDisturbIndex(XMINT2(i,j));
-		Effects::Water->SetDisturbHeight(r);
-		Effects::Water->WaveDisturbTech->GetPassByIndex(p)->Apply(0, pD3dContext);
+		WaterEffect::Ptr()->SetDisturbIndex(XMINT2(i,j));
+		WaterEffect::Ptr()->SetDisturbHeight(r);
+		WaterEffect::Ptr()->WaveDisturbTech->GetPassByIndex(p)->Apply(0, pD3dContext);
 
 		pD3dContext->Dispatch(1, 1, 1);
 	}

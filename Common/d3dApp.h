@@ -18,6 +18,7 @@
 #include <functional>
 #include <vector>
 #include "CameraCtrl.h"
+#include <DirectXCollision.h>
 
 enum RenderOptions
 {
@@ -45,8 +46,10 @@ private:
 	std::vector<MouseDelegate> mDelegates;
 };
 
+class IUnknownInstance;
 class D3DApp
 {
+	typedef std::vector<IUnknownInstance*>  UnknownVector;
 public:
 	D3DApp(HINSTANCE hInstance);
 	virtual ~D3DApp();
@@ -81,8 +84,12 @@ public:
 	{
 		mCurCameraCtrl = pCtrl;
 	}
+	const BoundingFrustum& GetCameraFrustum()const{return mCameraFrustum;}
 
 	RenderOptions		GetRenderOptions()const{ return mRenderOptions; }
+
+	void				AddUnknownInstance( IUnknownInstance* pInstance ){ mInstanceUnknown.push_back( pInstance ); }
+
 protected:
 	bool				InitMainWindow();
 	bool				InitDirect3D();
@@ -122,8 +129,11 @@ protected:
 	MouseEvent				mEvtOnMouseMove;
 
 	Camera					mCamera;
+	BoundingFrustum			mCameraFrustum;
+
 	CameraCtrlBase*			mCurCameraCtrl;
 	RenderOptions			mRenderOptions;
+	UnknownVector			mInstanceUnknown;
 };
 
 #endif // D3DAPP_H

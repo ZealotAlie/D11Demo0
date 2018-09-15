@@ -1,8 +1,17 @@
 #include "D11DemoApp.h"
-#include "Effects.h"
-#include "Vertex.h"
+#include "DemoEffects.h"
 #include "RenderObjects.h"
-#include "RenderStates.h"
+#include "UnknownInstance/RenderStates.h"
+#include "UnknownInstance/Basic32.h"
+
+template<typename T>
+static void SetupLightFog(T* pEffect, const DirectionalLight* pLights, const FXMVECTOR fogColor, float fogStart, float fogRange)
+{
+	pEffect->SetDirLights(pLights);
+	pEffect->SetFogColor(fogColor);
+	pEffect->SetFogStart(fogStart);
+	pEffect->SetFogRange(fogRange);
+}
 
 D11DemoApp::D11DemoApp(HINSTANCE hInstance)
 	:D3DApp(hInstance)
@@ -36,15 +45,12 @@ D11DemoApp::D11DemoApp(HINSTANCE hInstance)
 	mRenderObjects.push_back(new SkullObject( wall ));
 	mRenderObjects.push_back(new TreeObject());
 	mRenderObjects.push_back(wall);
-	//mRenderObjects.push_back(new WaterObject());
-	mRenderObjects.push_back(new CsWaterObject());
+	mRenderObjects.push_back(new WaterObject());
+	//mRenderObjects.push_back(new CsWaterObject());
 }
 
 D11DemoApp::~D11DemoApp()
 {
-	Effects::DestroyAll();
-	InputLayouts::DestroyAll();
-	RenderStates::DestroyAll();
 	for(auto pObj :mRenderObjects)
 	{
 		delete pObj;
@@ -62,9 +68,10 @@ bool D11DemoApp::Init()
 		return false;
 	}
 
-	Effects::InitAll(md3dDevice);
-	InputLayouts::InitAll(md3dDevice);
-	RenderStates::InitAll(md3dDevice);
+	AddUnknownInstance( new BasicEffect( md3dDevice, L"FX/Basic.fx" )			);
+	AddUnknownInstance( new TreeSpriteEffect( md3dDevice,L"FX/TreeSprite.fx" )	);
+	AddUnknownInstance( new BlurEffect( md3dDevice,L"FX/Blur.fx" )				);
+	AddUnknownInstance( new WaterEffect( md3dDevice,L"FX/Water.fx" )			);
 
 	for(auto pObj :mRenderObjects)
 	{
@@ -76,9 +83,9 @@ bool D11DemoApp::Init()
 	const float fogStart = 25;
 	const float fogRange = 400;
 
-	Effects::SetupLightFog( Effects::BasicFX,		mDirLights, fogColor, fogStart, fogRange );
-	Effects::SetupLightFog( Effects::TreeSprite,	mDirLights, fogColor, fogStart, fogRange );
-	Effects::SetupLightFog( Effects::Water,			mDirLights, fogColor, fogStart, fogRange );
+	SetupLightFog( BasicEffect::Ptr(),			mDirLights, fogColor, fogStart, fogRange );
+	SetupLightFog( TreeSpriteEffect::Ptr(),		mDirLights, fogColor, fogStart, fogRange );
+	SetupLightFog( WaterEffect::Ptr(),			mDirLights, fogColor, fogStart, fogRange );
 
 	BuildOffScreenViews();
 	return true;
@@ -133,8 +140,8 @@ void D11DemoApp::DrawScene()
 	if( mBlurCount == 0 )
 	{
 		mScreenQuad.DrawQuad(this,mOffscreenSRV);
-		Effects::BasicFX->SetDiffuseMap(nullptr);
-		Effects::BasicFX->Light0TexTech->GetPassByIndex(0)->Apply(0, md3dImmediateContext);
+		BasicEffect::Ptr()->SetDiffuseMap(nullptr);
+		BasicEffect::Ptr()->Light0TexTech->GetPassByIndex(0)->Apply(0, md3dImmediateContext);
 	}
 	else
 	{

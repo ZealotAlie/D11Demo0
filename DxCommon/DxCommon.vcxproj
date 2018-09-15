@@ -135,30 +135,43 @@
   <ItemGroup>
     <ClCompile Include="..\Common\Camera.cpp" />
     <ClCompile Include="..\Common\CameraCtrl.cpp" />
+    <ClCompile Include="..\Common\CommonRenderObjects.cpp" />
     <ClCompile Include="..\Common\d3dApp.cpp" />
     <ClCompile Include="..\Common\d3dUtil.cpp" />
     <ClCompile Include="..\Common\DDSTextureLoader.cpp" />
+    <ClCompile Include="..\Common\Effect.cpp" />
     <ClCompile Include="..\Common\GameTimer.cpp" />
     <ClCompile Include="..\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\Common\LightHelper.cpp" />
     <ClCompile Include="..\Common\MathHelper.cpp" />
+    <ClCompile Include="..\Common\RenderObject.cpp" />
+    <ClCompile Include="..\Common\UnknownInstance\Basic32.cpp" />
+    <ClCompile Include="..\Common\UnknownInstance\Pos.cpp" />
+    <ClCompile Include="..\Common\UnknownInstance\RenderStates.cpp" />
     <ClCompile Include="..\Common\Waves.cpp" />
     <ClCompile Include="..\Common\WinHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Camera.h" />
     <ClInclude Include="..\Common\CameraCtrl.h" />
+    <ClInclude Include="..\Common\CommonRenderObjects.h" />
     <ClInclude Include="..\Common\CoreMacro.h" />
     <ClInclude Include="..\Common\d3dApp.h" />
     <ClInclude Include="..\Common\d3dUtil.h" />
     <ClInclude Include="..\Common\d3dx11effect.h" />
     <ClInclude Include="..\Common\d3dxGlobal.h" />
     <ClInclude Include="..\Common\DDSTextureLoader.h" />
+    <ClInclude Include="..\Common\Effect.h" />
     <ClInclude Include="..\Common\GameTimer.h" />
     <ClInclude Include="..\Common\GeometryGenerator.h" />
     <ClInclude Include="..\Common\LightHelper.h" />
     <ClInclude Include="..\Common\MathHelper.h" />
+    <ClInclude Include="..\Common\RenderObject.h" />
     <ClInclude Include="..\Common\StringUtils.h" />
+    <ClInclude Include="..\Common\UnknownInstance\Basic32.h" />
+    <ClInclude Include="..\Common\UnknownInstance\Pos.h" />
+    <ClInclude Include="..\Common\UnknownInstance\RenderStates.h" />
+    <ClInclude Include="..\Common\UnknownInstance\UnknownInstance.h" />
     <ClInclude Include="..\Common\Waves.h" />
     <ClInclude Include="..\Common\WinHelper.h" />
   </ItemGroup>

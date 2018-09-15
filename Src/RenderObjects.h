@@ -1,69 +1,8 @@
-#ifndef _RENDEROBJECT_H_
-#define _RENDEROBJECT_H_
+#ifndef _RENDEROBJECTS_H_
+#define _RENDEROBJECTS_H_
 
-#include "Vertex.h"
 #include "Waves.h"
-#include "d3dUtil.h"
-#include "d3dx11effect.h"
-
-class D3DApp;
-class RenderObject
-{
-public:
-	RenderObject()
-		:mTextureSRV(nullptr)
-		,mIndexBuffer(nullptr)
-		,mVertexBuffer(nullptr)
-	{
-		XMMATRIX I = XMMatrixIdentity();
-		XMStoreFloat4x4(&mWorld, I);
-		XMStoreFloat4x4(&mTexTransform, I);
-	}
-
-	virtual ~RenderObject();
-
-	ID3D11ShaderResourceView*	GetTextureSRV()const{ return mTextureSRV; }
-	const Material&				GetMaterial()const{ return mMaterial; }
-	const XMFLOAT4X4&			GetTexTransform()const { return mTexTransform; }
-	const XMFLOAT4X4&			GetWorld()const{return mWorld;}
-
-	virtual void				Update(float dt){}
-	virtual void				Build(const D3DApp* pApp) = 0;
-	virtual void				Draw(const D3DApp* pApp);
-	virtual void				DrawTransparency(const D3DApp* pApp){};
-
-	template < typename T >
-	static void CreateBuffer( ID3D11Buffer*& pBuffer, ID3D11Device* pDevice, UINT size, T* pData, UINT bindFlags, D3D11_USAGE usage = D3D11_USAGE_IMMUTABLE );
-
-	template < typename TEffect >
-	void						SetupEffect( TEffect* pEffect, const D3DApp* pApp ) const
-	{
-		XMMATRIX world = XMLoadFloat4x4(&mWorld);
-		XMMATRIX worldInvTranspose = MathHelper::InverseTranspose(world);
-		XMMATRIX worldViewProj = world*pApp->GetCamera().ViewProj();
-
-		pEffect->SetWorld(world);
-		pEffect->SetWorldInvTranspose(worldInvTranspose);
-		pEffect->SetWorldViewProj(worldViewProj);
-		pEffect->SetMaterial( mMaterial );
-		pEffect->SetDiffuseMap( mTextureSRV );
-		pEffect->SetTexTransform( XMLoadFloat4x4( &mTexTransform ) );
-		pEffect->SetEyePosW(pApp->GetCamera().GetPosition());
-	}
-
-protected:
-	void						DrawWithTech(ID3D11DeviceContext* pContext,ID3DX11EffectTechnique* pTech)const;
-
-protected:
-	XMFLOAT4X4					mWorld;
-	Material					mMaterial;
-	XMFLOAT4X4					mTexTransform;
-
-	ID3D11ShaderResourceView*	mTextureSRV;
-	ID3D11Buffer*				mVertexBuffer;
-	ID3D11Buffer*				mIndexBuffer;
-	UINT						mIndexNum;
-};
+#include "CommonRenderObjects.h"
 
 class MountObject:public RenderObject
 {
@@ -120,7 +59,7 @@ private:
 	Material					mMirrorMaterial;
 };
 
-class SkullObject:public RenderObject
+class SkullObject:public BasicSkullObject
 {
 public:
 	SkullObject(WallObject* wall)

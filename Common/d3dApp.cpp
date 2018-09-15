@@ -6,6 +6,7 @@
 #include "d3dApp.h"
 #include <WindowsX.h>
 #include <sstream>
+#include "UnknownInstance\UnknownInstance.h"
 
 LRESULT CALLBACK
 MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -51,6 +52,12 @@ D3DApp::D3DApp(HINSTANCE hInstance)
 
 D3DApp::~D3DApp()
 {
+	for ( IUnknownInstance* pInstance :mInstanceUnknown )
+	{
+		delete pInstance;
+	}
+	mInstanceUnknown.clear();
+
 	ReleaseCOM(mRenderTargetView);
 	ReleaseCOM(mDepthStencilView);
 	ReleaseCOM(mSwapChain);
@@ -211,7 +218,13 @@ void D3DApp::OnResize()
 
 	md3dImmediateContext->RSSetViewports(1, &mScreenViewport);
 
-	mCamera.SetLens(mCurCameraCtrl->GetFovY(),AspectRatio(),mCurCameraCtrl->GetZNear(),mCurCameraCtrl->GetZFar());
+
+	float fovY = mCurCameraCtrl? mCurCameraCtrl->GetFovY() : 0.25f*MathHelper::Pi;
+	float zFar = mCurCameraCtrl? mCurCameraCtrl->GetZFar() : 1000.0f;
+	float zNear = mCurCameraCtrl? mCurCameraCtrl->GetZNear() : 1.f;
+
+	mCamera.SetLens(fovY,AspectRatio(),zNear,zFar);
+	BoundingFrustum::CreateFromMatrix( mCameraFrustum, mCamera.Proj() );
 }
  
 void D3DApp::UpdateScene(float dt)
