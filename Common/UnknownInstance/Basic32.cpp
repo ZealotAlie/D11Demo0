@@ -28,7 +28,6 @@ ID3D11InputLayout* Basic32::GetInputLayout()
 BasicEffect::BasicEffect(ID3D11Device* device, const std::wstring& filename)
 	: Effect(device, filename)
 {
-
 	Light1Tech    = mFX->GetTechniqueByName("Light1");
 	Light2Tech    = mFX->GetTechniqueByName("Light2");
 	Light3Tech    = mFX->GetTechniqueByName("Light3");
@@ -86,9 +85,11 @@ BasicEffect::BasicEffect(ID3D11Device* device, const std::wstring& filename)
 	Light3TexAlphaClipFogReflectTech = mFX->GetTechniqueByName("Light3TexAlphaClipFogReflect");
 
 	WorldViewProj     = mFX->GetVariableByName("gWorldViewProj")->AsMatrix();
+	WorldViewProjTex  = mFX->GetVariableByName("gWorldViewProjTex")->AsMatrix();
 	World             = mFX->GetVariableByName("gWorld")->AsMatrix();
 	WorldInvTranspose = mFX->GetVariableByName("gWorldInvTranspose")->AsMatrix();
 	TexTransform      = mFX->GetVariableByName("gTexTransform")->AsMatrix();
+	ShadowTransform   = mFX->GetVariableByName("gShadowTransform")->AsMatrix();
 	EyePosW           = mFX->GetVariableByName("gEyePosW")->AsVector();
 	FogColor          = mFX->GetVariableByName("gFogColor")->AsVector();
 	FogStart          = mFX->GetVariableByName("gFogStart")->AsScalar();
@@ -97,6 +98,8 @@ BasicEffect::BasicEffect(ID3D11Device* device, const std::wstring& filename)
 	Mat               = mFX->GetVariableByName("gMaterial");
 	DiffuseMap        = mFX->GetVariableByName("gDiffuseMap")->AsShaderResource();
 	CubeMap           = mFX->GetVariableByName("gCubeMap")->AsShaderResource();
+	ShadowMap         = mFX->GetVariableByName("gShadowMap")->AsShaderResource();
+	SsaoMap           = mFX->GetVariableByName("gSsaoMap")->AsShaderResource();
 }
 
 BasicEffect::~BasicEffect()

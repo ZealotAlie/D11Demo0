@@ -78,6 +78,10 @@ public:
 	MouseEvent&			GetEventOnMouseUp(){return mEvtOnMouseUp;}
 	MouseEvent&			GetEventOnMouseMove(){return mEvtOnMouseMove;}
 
+	virtual void OnMouseDown(WPARAM btnState, int x, int y){}
+	virtual void OnMouseUp(WPARAM btnState, int x, int y){}
+	virtual void OnMouseMove(WPARAM btnState, int x, int y){}
+
 	Camera&				GetCamera(){return mCamera;}
 	const Camera&		GetCamera()const{return mCamera;}
 	void				SetCameraControll(CameraCtrlBase* pCtrl)
@@ -86,8 +90,12 @@ public:
 	}
 	const BoundingFrustum& GetCameraFrustum()const{return mCameraFrustum;}
 
+	int					GetClientWidth()const{return mClientWidth;}
+	int					GetClientHeight()const{return mClientHeight;}
+
 	RenderOptions		GetRenderOptions()const{ return mRenderOptions; }
 
+	float				DeltaTime()const{ return mTimer.DeltaTime(); }
 	void				AddUnknownInstance( IUnknownInstance* pInstance ){ mInstanceUnknown.push_back( pInstance ); }
 
 protected:

@@ -20,7 +20,6 @@ public:
 	~SkyObject();
 	void			Build(const D3DApp* pApp,const std::vector<std::wstring> cubemapFilenames, float skySphereRadius);
 	virtual void	Draw(const D3DApp* pApp)override;
-
 protected:
 	std::vector<ID3D11ShaderResourceView*>	mSkyTextures;
 };
@@ -30,6 +29,8 @@ class StoneBuildingBase:public RenderObject
 public:
 	StoneBuildingBase();
 	~StoneBuildingBase();
+
+	virtual void Build(const D3DApp* pApp);
 
 protected:
 	Material		mGridMat;

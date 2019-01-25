@@ -34,6 +34,8 @@ public:
 	template < typename T >
 	static void					CreateBuffer(ID3D11Buffer*& pBuffer, ID3D11Device* pDevice, UINT size, T* pData, UINT bindFlags, D3D11_USAGE usage  = D3D11_USAGE_IMMUTABLE );
 	template < typename TEffect >
+	void						SetupEffect( const XMFLOAT4X4& world, TEffect* pEffect, const D3DApp* pApp ) const;
+	template < typename TEffect >
 	void						SetupEffect( TEffect* pEffect, const D3DApp* pApp ) const;
 
 protected:
@@ -84,9 +86,9 @@ void RenderObject::CreateBuffer(ID3D11Buffer*& pBuffer, ID3D11Device* pDevice, U
 }
 
 template < typename TEffect >
-void RenderObject::SetupEffect(TEffect* pEffect, const D3DApp* pApp) const
+void RenderObject::SetupEffect(const XMFLOAT4X4& inputWorld, TEffect* pEffect, const D3DApp* pApp) const
 {
-	XMMATRIX world = XMLoadFloat4x4(&mWorld);
+	XMMATRIX world = XMLoadFloat4x4(&inputWorld);
 	XMMATRIX worldInvTranspose = MathHelper::InverseTranspose(world);
 	XMMATRIX worldViewProj = world*pApp->GetCamera().ViewProj();
 
@@ -97,6 +99,12 @@ void RenderObject::SetupEffect(TEffect* pEffect, const D3DApp* pApp) const
 	pEffect->SetDiffuseMap( mTextureSRV );
 	pEffect->SetTexTransform( XMLoadFloat4x4( &mTexTransform ) );
 	pEffect->SetEyePosW( pApp->GetCamera().GetPosition() );
+}
+
+template < typename TEffect >
+void RenderObject::SetupEffect(TEffect* pEffect, const D3DApp* pApp) const
+{
+	SetupEffect( mWorld, pEffect, pApp );
 }
 
 #endif

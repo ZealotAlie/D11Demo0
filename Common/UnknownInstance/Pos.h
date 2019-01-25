@@ -6,7 +6,7 @@
 #include "../d3dApp.h"
 #include "UnknownInstance.h"
 
-struct Pos
+struct PosLayout
 {
 	static ID3D11InputLayout* GetInputLayout();
 };

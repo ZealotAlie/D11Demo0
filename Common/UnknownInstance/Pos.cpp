@@ -20,7 +20,7 @@ public:
 
 
 
-ID3D11InputLayout* Pos::GetInputLayout()
+ID3D11InputLayout* PosLayout::GetInputLayout()
 {
 	return PosInputLayout::Ptr();
 }
