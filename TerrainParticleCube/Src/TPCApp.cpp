@@ -20,6 +20,9 @@ TPCApp::TPCApp(HINSTANCE hInstance)
 TPCApp::~TPCApp()
 {
 	md3dImmediateContext->ClearState();
+	ReleaseCOM(mFlareTexSRV);
+	ReleaseCOM(mRainTexSRV);
+	ReleaseCOM(mRandomTexSRV);
 }
 
 bool TPCApp::Init()
