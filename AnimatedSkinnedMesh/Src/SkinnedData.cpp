@@ -1,5 +1,3 @@
-
-
 #include "SkinnedData.h"
 #include "MeshGeometry.h"
 

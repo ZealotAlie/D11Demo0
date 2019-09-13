@@ -58,7 +58,6 @@ struct AnimationClip
 class SkinnedData
 {
 public:
-
 	UINT BoneCount()const;
 
 	float GetClipStartTime(const std::string& clipName)const;

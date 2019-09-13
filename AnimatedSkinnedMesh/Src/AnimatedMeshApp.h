@@ -18,13 +18,6 @@ struct SBoundingSphere
 	float Radius;
 };
 
-enum EDrawOptions
-{
-	RenderOptionsBasic = 0,
-	RenderOptionsNormalMap = 1,
-	RenderOptionsDisplacementMap = 2
-};
-
 class AnimatedMeshApp : public D3DApp
 {
 public:
@@ -41,16 +34,11 @@ private:
 	CameraCtrlRotate		mRotateCameraController;
 	SBoundingSphere			mSceneBounds;
 
-	float					mLightRotationAngle;
-	XMFLOAT3				mOriginalLightDir[3];
-
 	XMFLOAT4X4				mLightView;
 	XMFLOAT4X4				mLightProj;
-	XMFLOAT4X4				mShadowTransform;
 
 	SkyObject				mSky;
 
-	EDrawOptions			mDrawOptions;
 	TextureMgr				mTextureMgr;
 	M3DLoader				mLoader;
 	SkinnedModel*			mCharacterModel;

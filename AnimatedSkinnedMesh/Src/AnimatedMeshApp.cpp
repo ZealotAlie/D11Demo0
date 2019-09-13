@@ -24,8 +24,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 AnimatedMeshApp::AnimatedMeshApp(HINSTANCE hInstance)
 	: D3DApp(hInstance)
 	, mRotateCameraController(*this, 1, 200)
-	, mLightRotationAngle(0)
-	, mDrawOptions(RenderOptionsBasic)
 	, mCharacterModel(nullptr)
 {
 	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
@@ -48,11 +46,6 @@ AnimatedMeshApp::AnimatedMeshApp(HINSTANCE hInstance)
 	mEnvironment.dirLights[2].Diffuse = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
 	mEnvironment.dirLights[2].Specular = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
 	mEnvironment.dirLights[2].Direction = XMFLOAT3(0.0f, 0.0, -1.0f);
-
-
-	mOriginalLightDir[0] = mEnvironment.dirLights[0].Direction;
-	mOriginalLightDir[1] = mEnvironment.dirLights[1].Direction;
-	mOriginalLightDir[2] = mEnvironment.dirLights[2].Direction;
 }
 
 AnimatedMeshApp::~AnimatedMeshApp()
@@ -177,27 +170,7 @@ void AnimatedMeshApp::DrawScene()
 void AnimatedMeshApp::UpdateScene(float dt)
 {
 	D3DApp::UpdateScene(dt);
-
 	mCharacterInstance.Update(dt);
-
-	if (GetAsyncKeyState('1') & 0x8000)
-		mDrawOptions = RenderOptionsBasic;
-
-	if (GetAsyncKeyState('2') & 0x8000)
-		mDrawOptions = RenderOptionsNormalMap;
-
-	if (GetAsyncKeyState('3') & 0x8000)
-		mDrawOptions = RenderOptionsDisplacementMap;
-
-	mLightRotationAngle += 0.1f * dt;
-
-	XMMATRIX R = XMMatrixRotationY(mLightRotationAngle);
-	for (int i = 0; i < 3; ++i)
-	{
-		XMVECTOR lightDir = XMLoadFloat3(&mOriginalLightDir[i]);
-		lightDir = XMVector3TransformNormal(lightDir, R);
-		XMStoreFloat3(&mEnvironment.dirLights[i].Direction, lightDir);
-	}
 }
 
 void AnimatedMeshApp::OnResize()
