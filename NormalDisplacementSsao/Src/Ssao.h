@@ -53,7 +53,7 @@ public:
 
 private:
 	Ssao(const Ssao& rhs);
-	Ssao& operator=(const Ssao& rhs);
+	Ssao& operator=(const Ssao& rhs) = delete;
 
 	void BlurAmbientMap(ID3D11ShaderResourceView* inputSRV, ID3D11RenderTargetView* outputRTV, bool horzBlur);
 
@@ -67,9 +67,6 @@ private:
 	void BuildRandomVectorTexture(ID3D11Device *pDevice);
 
 	void BuildOffsetVectors();
-
-	void DrawFullScreenQuad();
-
 private:
 	ID3D11Buffer*				mScreenQuadVB;
 	ID3D11Buffer*				mScreenQuadIB;
